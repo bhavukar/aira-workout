@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ThesisLegalDocument from './ThesisLegalDocument';
 import { WorkoutMode } from '../../types/workout';
+import { unlockAudio, playAudioChime } from '../../lib/audio';
 
 interface ThesisModalProps {
   isOpen: boolean;
@@ -16,7 +17,6 @@ export default function ThesisModal({ isOpen, onClose }: ThesisModalProps) {
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Reset state on open
     if (isOpen) {
       setHasScrolledToBottom(false);
       setScrollProgress(0);
@@ -28,12 +28,19 @@ export default function ThesisModal({ isOpen, onClose }: ThesisModalProps) {
     if (!el) return;
     const { scrollTop, scrollHeight, clientHeight } = el;
     const maxScroll = scrollHeight - clientHeight;
-    const progress = maxScroll > 0 ? Math.min(100, Math.round((scrollTop / maxScroll) * 100)) : 100;
+    const progress =
+      maxScroll > 0 ? Math.min(100, Math.round((scrollTop / maxScroll) * 100)) : 100;
     setScrollProgress(progress);
 
     if (scrollTop + clientHeight >= scrollHeight - 35) {
       setHasScrolledToBottom(true);
     }
+  };
+
+  const handleDismiss = () => {
+    unlockAudio();
+    playAudioChime(640, 'sine', 0.08);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -60,7 +67,7 @@ export default function ThesisModal({ isOpen, onClose }: ThesisModalProps) {
               Source .zip
             </a>
             <button
-              onClick={onClose}
+              onClick={handleDismiss}
               className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center justify-center transition-transform active:scale-90"
               aria-label="Close"
             >
@@ -75,7 +82,7 @@ export default function ThesisModal({ isOpen, onClose }: ThesisModalProps) {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto px-1 pb-4 no-scrollbar"
         >
-          <ThesisLegalDocument onBackToWorkout={onClose} />
+          <ThesisLegalDocument onBackToWorkout={handleDismiss} />
         </div>
 
         {/* Bottom Sticky Action Bar with Scroll Requirement */}
@@ -95,16 +102,16 @@ export default function ThesisModal({ isOpen, onClose }: ThesisModalProps) {
 
           {/* Try It Out CTA Button */}
           <button
-            onClick={hasScrolledToBottom ? onClose : undefined}
+            onClick={hasScrolledToBottom ? handleDismiss : undefined}
             disabled={!hasScrolledToBottom}
             className={`py-3 px-6 rounded-full font-black text-xs flex items-center gap-2 transition-all shadow-sm ${
               hasScrolledToBottom
-                ? 'bg-[#141414] hover:bg-black text-white active:scale-95 cursor-pointer animate-scale-up-fade'
-                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed opacity-60'
+                ? 'bg-[#141414] hover:bg-black text-white cursor-pointer active:scale-95'
+                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
             }`}
           >
-            <span>{hasScrolledToBottom ? 'Try It Out · Launch Workout' : 'Scroll Down to Unlock'}</span>
-            <i className={`bx ${hasScrolledToBottom ? 'bx-chevron-right text-base text-[#F2541A]' : 'bx-lock-alt text-xs'}`}></i>
+            <span>Try It Out &middot; Launch Workout</span>
+            <i className="bx bx-right-arrow-alt text-base text-[#F2541A]"></i>
           </button>
         </div>
       </div>
