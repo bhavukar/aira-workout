@@ -31,6 +31,7 @@ export default function AiraWorkoutPage() {
   const [exercise, setExercise] = useState<ExerciseData>(DEFAULT_EXERCISE);
   const [speechEnabled, setSpeechEnabled] = useState<boolean>(true);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [isListening, setIsListening] = useState<boolean>(false);
   const [timerSeconds, setTimerSeconds] = useState<number>(45);
   const [timerActive, setTimerActive] = useState<boolean>(false);
   const [isComposerOpen, setIsComposerOpen] = useState<boolean>(false);
@@ -42,6 +43,8 @@ export default function AiraWorkoutPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const hasEverUnlockedAudioRef = useRef<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   // Play audio track with graceful fallback to browser speech synthesis
   const playVoiceAudio = useCallback(
@@ -250,6 +253,7 @@ export default function AiraWorkoutPage() {
     async (cmd: string) => {
       const text = cmd.trim().toLowerCase();
       setIsComposerOpen(false);
+      setIsListening(false);
       unlockAudio();
       playAudioChime(720, 'sine', 0.06);
 
@@ -326,6 +330,81 @@ export default function AiraWorkoutPage() {
     [handleTriggerMode, mode, playVoiceAudio]
   );
 
+  // Real Mic Input Toggle using Web Speech API
+  const handleToggleMic = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    // If currently listening, stop
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsListening(false);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionClass =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) {
+      // Fallback: Open talk-over drawer modal
+      setIsComposerOpen(true);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionClass();
+      recognitionRef.current = recognition;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        playAudioChime(760, 'sine', 0.05);
+        // Instant Continuous Duplex Pre-emption: stop playing audio immediately
+        if (currentAudioRef.current) {
+          currentAudioRef.current.pause();
+          currentAudioRef.current.currentTime = 0;
+          currentAudioRef.current = null;
+        }
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        setIsSpeaking(false);
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onresult = (event: any) => {
+        setIsListening(false);
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript && transcript.trim()) {
+          handleUserCommand(transcript.trim());
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+        setIsComposerOpen(true);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch {
+      setIsListening(false);
+      setIsComposerOpen(true);
+    }
+  }, [isListening, handleUserCommand]);
+
   // Sound Toggle (Mute / Unmute)
   const handleToggleSpeech = useCallback(() => {
     const nextState = !speechEnabled;
@@ -373,6 +452,7 @@ export default function AiraWorkoutPage() {
           mode={mode}
           exercise={exercise}
           isSpeaking={isSpeaking}
+          isListening={isListening}
           speechEnabled={speechEnabled}
           isThinking={isThinking}
           thinkingLabel={thinkingLabel}
@@ -390,6 +470,7 @@ export default function AiraWorkoutPage() {
           onCloseMenu={() => setMenuOpen(false)}
           onToggleSpeech={handleToggleSpeech}
           onPlayAudio={() => startAudioPlayback()}
+          onToggleMic={handleToggleMic}
           onSelectMode={handleTriggerMode}
           onToggleTimer={() => setTimerActive(!timerActive)}
           onResetTimer={() => setTimerSeconds(exercise.duration)}

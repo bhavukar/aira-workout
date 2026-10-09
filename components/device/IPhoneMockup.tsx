@@ -9,7 +9,6 @@ import CircuitPlanCard from '../cards/CircuitPlanCard';
 import BiomechanicalCard from '../cards/BiomechanicalCard';
 import BreathingPacerCard from '../cards/BreathingPacerCard';
 import DebriefCard from '../cards/DebriefCard';
-import AiraAvatarStage from '../avatar/AiraAvatarStage';
 import TalkOverDrawer from '../modals/TalkOverDrawer';
 import ThinkingLoader from '../modals/ThinkingLoader';
 import { ExerciseData, WorkoutMode } from '../../types/workout';
@@ -19,6 +18,7 @@ interface IPhoneMockupProps {
   mode: WorkoutMode;
   exercise: ExerciseData;
   isSpeaking: boolean;
+  isListening?: boolean;
   speechEnabled: boolean;
   isThinking: boolean;
   thinkingLabel: string;
@@ -33,6 +33,7 @@ interface IPhoneMockupProps {
   onCloseMenu: () => void;
   onToggleSpeech: () => void;
   onPlayAudio: () => void;
+  onToggleMic: () => void;
   onSelectMode: (mode: WorkoutMode, userPrompt?: string) => void;
   onToggleTimer: () => void;
   onResetTimer: () => void;
@@ -47,6 +48,7 @@ export default function IPhoneMockup({
   mode,
   exercise,
   isSpeaking,
+  isListening = false,
   speechEnabled,
   isThinking,
   thinkingLabel,
@@ -61,6 +63,7 @@ export default function IPhoneMockup({
   onCloseMenu,
   onToggleSpeech,
   onPlayAudio,
+  onToggleMic,
   onSelectMode,
   onToggleTimer,
   onResetTimer,
@@ -81,7 +84,7 @@ export default function IPhoneMockup({
         <div className="relative w-full h-full rounded-[54px] bg-[#FAFAF8] text-[#141414] overflow-hidden flex flex-col justify-between shadow-inner">
           {/* Hardware Status Bar */}
           <StatusBar
-            isSpeaking={isSpeaking}
+            isSpeaking={isSpeaking || isListening}
             mode={mode}
             onDynamicIslandClick={() => {
               playAudioChime(660);
@@ -89,7 +92,7 @@ export default function IPhoneMockup({
             }}
           />
 
-          {/* In-Phone Thinking Loader: Jakub Antalik's Thinking Orb strictly on loading */}
+          {/* In-Phone Thinking Loader */}
           {isThinking && <ThinkingLoader label={thinkingLabel} />}
 
           {/* Action Bar Header */}
@@ -110,8 +113,8 @@ export default function IPhoneMockup({
               }}
               className="cursor-pointer px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-black/5 text-[11px] font-bold tracking-wide uppercase text-[#555] flex items-center gap-1.5 hover:bg-white transition-colors"
             >
-              {isSpeaking && (
-                <span className="w-2 h-2 rounded-full bg-[#F2541A]" />
+              {(isSpeaking || isListening) && (
+                <span className="w-2 h-2 rounded-full bg-[#F2541A] animate-pulse" />
               )}
               AiRA ATHLETIC 12M
             </div>
@@ -139,7 +142,7 @@ export default function IPhoneMockup({
 
           {/* Scrollable Center Content */}
           <div className="flex-1 px-4 pt-2 pb-28 overflow-y-auto no-scrollbar space-y-3 flex flex-col">
-            {/* 1. STANDBY MODE: AiRA in the center BIG, asks questions */}
+            {/* 1. STANDBY MODE */}
             {mode === 'standby' ? (
               <StandbyHeroCard
                 isSpeaking={isSpeaking}
@@ -155,9 +158,8 @@ export default function IPhoneMockup({
                 }
               />
             ) : (
-              /* ACTIVE WORKOUT STATES: Compact companion + Dynamic Cards */
+              /* ACTIVE WORKOUT STATES */
               <>
-                {/* Unified Apple-Style Live Coach Capsule */}
                 <div className="bg-white/90 backdrop-blur-md rounded-[24px] p-3.5 shadow-[0_2px_16px_rgba(0,0,0,0.03)] border border-black/5 space-y-1.5 transition-all">
                   <div className="flex items-center justify-between">
                     <div
@@ -180,7 +182,7 @@ export default function IPhoneMockup({
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-bold text-neutral-900">AiRA</span>
                         <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">
-                          {isSpeaking ? 'Speaking' : 'Coaching'}
+                          {isSpeaking ? 'Speaking' : isListening ? 'Listening' : 'Coaching'}
                         </span>
                       </div>
                     </div>
@@ -244,13 +246,14 @@ export default function IPhoneMockup({
             )}
           </div>
 
-          {/* Bottom Interactive Talk-Over Bar */}
+          {/* Bottom Interactive Talk-Over Bar with Real Mic Mode */}
           <BottomComposerBar
             isSpeaking={isSpeaking}
+            isListening={isListening}
             onPaperclipClick={() =>
               onSelectMode(mode === 'standby' ? 'briefing' : 'standby')
             }
-            onMicClick={onPlayAudio}
+            onMicClick={onToggleMic}
             onKeyboardClick={onToggleComposer}
             onIntensityClick={() =>
               onSelectMode('intensity', 'Pumping up intensity!')
