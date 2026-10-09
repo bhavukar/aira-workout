@@ -147,6 +147,8 @@ export default function AiraWorkoutPage() {
               mode === 'intensity'
             ) {
               handleTriggerMode('recovery');
+            } else if (mode === 'recovery') {
+              handleTriggerMode('debrief');
             }
             return 0;
           }

@@ -226,6 +226,7 @@ export default function IPhoneMockup({
                     onToggleTimer={onToggleTimer}
                     onResetTimer={onResetTimer}
                     onNext={() => onSelectMode('recovery')}
+                    onFinishWorkout={() => onSelectMode('debrief')}
                     formatTimer={formatTimer}
                   />
                 )}
@@ -235,6 +236,7 @@ export default function IPhoneMockup({
                     timerSeconds={timerSeconds}
                     onAddRest={onAddRest}
                     onReadyToPush={() => onSelectMode('interval')}
+                    onFinishWorkout={() => onSelectMode('debrief')}
                     formatTimer={formatTimer}
                   />
                 )}

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ExerciseData } from '../../types/workout';
+import { unlockAudio, playAudioChime } from '../../lib/audio';
 
 interface BiomechanicalCardProps {
   exercise: ExerciseData;
@@ -10,6 +11,7 @@ interface BiomechanicalCardProps {
   onToggleTimer: () => void;
   onResetTimer: () => void;
   onNext: () => void;
+  onFinishWorkout?: () => void;
   formatTimer: (seconds: number) => string;
 }
 
@@ -20,13 +22,20 @@ export default function BiomechanicalCard({
   onToggleTimer,
   onResetTimer,
   onNext,
+  onFinishWorkout,
   formatTimer,
 }: BiomechanicalCardProps) {
   const progressRatio = exercise.duration > 0 ? timerSeconds / exercise.duration : 0;
   const strokeDashoffset = 264 - 264 * progressRatio;
 
+  const handleFinish = () => {
+    unlockAudio();
+    playAudioChime(640, 'sine', 0.08);
+    onFinishWorkout?.();
+  };
+
   return (
-    <div className="bg-white rounded-[32px] p-5 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-black/5 space-y-4 font-sans animate-slide-up-fade">
+    <div className="bg-white rounded-[32px] p-5 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-black/5 space-y-3.5 font-sans animate-slide-up-fade">
       {/* Adaptation Banner if knee was swapped */}
       {exercise.adapted && (
         <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-amber-950 flex items-center justify-between shadow-2xs animate-scale-up-fade">
@@ -46,7 +55,7 @@ export default function BiomechanicalCard({
         </div>
       )}
 
-      {/* Header: Exercise Name & Clean Heart Rate Badge (reveals first) */}
+      {/* Header: Exercise Name & Heart Rate */}
       <div className="flex items-start justify-between animate-slide-up-fade">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 block mb-0.5">
@@ -60,18 +69,16 @@ export default function BiomechanicalCard({
           </p>
         </div>
 
-        {/* Clean Apple Heart Rate Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 font-bold text-xs shadow-xs border border-red-100/60">
           <i className="bx bxs-heart text-red-500 text-sm"></i>
           <span>{exercise.hrBpm} BPM</span>
         </div>
       </div>
 
-      {/* Spacious Apple-Style Circular Countdown Timer */}
-      <div className="relative py-2 flex items-center justify-center animate-scale-up-fade delay-150">
-        <div className="relative w-44 h-44 flex items-center justify-center flex-shrink-0">
+      {/* Circular Countdown Timer */}
+      <div className="relative py-1 flex items-center justify-center animate-scale-up-fade delay-150">
+        <div className="relative w-40 h-40 flex items-center justify-center flex-shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-            {/* Background track */}
             <circle
               cx="50"
               cy="50"
@@ -80,7 +87,6 @@ export default function BiomechanicalCard({
               strokeWidth="5"
               fill="transparent"
             />
-            {/* Active stroke */}
             <circle
               cx="50"
               cy="50"
@@ -95,7 +101,6 @@ export default function BiomechanicalCard({
             />
           </svg>
 
-          {/* Digital Timer Inside Circle with generous breathing room */}
           <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
             <span className="text-3xl font-black tracking-tight text-neutral-950 font-mono tabular-nums leading-none">
               {formatTimer(timerSeconds)}
@@ -107,8 +112,8 @@ export default function BiomechanicalCard({
         </div>
       </div>
 
-      {/* Clean Form & Tempo Strip (staggers in) */}
-      <div className="pt-3 border-t border-black/5 space-y-1 text-xs animate-slide-up-fade delay-250">
+      {/* Form & Tempo */}
+      <div className="pt-2.5 border-t border-black/5 space-y-1 text-xs animate-slide-up-fade delay-250">
         <div className="flex items-baseline justify-between gap-2">
           <span className="font-bold text-neutral-900 flex-shrink-0">Tempo</span>
           <span className="font-mono text-neutral-800 font-bold text-[11px] text-right">
@@ -120,33 +125,46 @@ export default function BiomechanicalCard({
         </p>
       </div>
 
-      {/* Apple-Grade Stadium Action Controls (staggers in last) */}
-      <div className="grid grid-cols-3 gap-2 pt-1 animate-slide-up-fade delay-350">
-        <button
-          onClick={onToggleTimer}
-          className={`py-3.5 px-3 rounded-full font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
-            timerActive
-              ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-900 border border-neutral-200/80'
-              : 'bg-[#141414] hover:bg-black text-white shadow-xs'
-          }`}
-        >
-          <i className={`bx ${timerActive ? 'bx-pause' : 'bx-play'} text-base`}></i>
-          {timerActive ? 'Pause' : 'Resume'}
-        </button>
+      {/* Controls */}
+      <div className="space-y-2 pt-1 animate-slide-up-fade delay-350">
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={onToggleTimer}
+            className={`py-3 px-2 rounded-full font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95 ${
+              timerActive
+                ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-900 border border-neutral-200/80'
+                : 'bg-[#141414] hover:bg-black text-white shadow-xs'
+            }`}
+          >
+            <i className={`bx ${timerActive ? 'bx-pause' : 'bx-play'} text-base`}></i>
+            {timerActive ? 'Pause' : 'Resume'}
+          </button>
 
-        <button
-          onClick={onResetTimer}
-          className="py-3.5 px-3 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200/80 font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95"
-        >
-          <i className="bx bx-refresh text-base"></i> Reset
-        </button>
+          <button
+            onClick={onResetTimer}
+            className="py-3 px-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200/80 font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95"
+          >
+            <i className="bx bx-refresh text-base"></i> Reset
+          </button>
 
-        <button
-          onClick={onNext}
-          className="py-3.5 px-3 rounded-full bg-[#141414] hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95 shadow-xs"
-        >
-          Next <i className="bx bx-chevron-right text-base"></i>
-        </button>
+          <button
+            onClick={onNext}
+            className="py-3 px-2 rounded-full bg-[#141414] hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95 shadow-xs"
+          >
+            Rest <i className="bx bx-chevron-right text-base"></i>
+          </button>
+        </div>
+
+        {/* End Workout CTA button */}
+        {onFinishWorkout && (
+          <button
+            onClick={handleFinish}
+            className="w-full py-2.5 px-4 rounded-full bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 text-neutral-600 hover:text-neutral-950 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all active:scale-95"
+          >
+            <i className="bx bx-check-circle text-emerald-600 text-sm"></i>
+            End Session &amp; View Debrief
+          </button>
+        )}
       </div>
     </div>
   );
